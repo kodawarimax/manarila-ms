@@ -1,0 +1,54 @@
+name: MANARILA Autonomous LINE Rhythm
+
+on:
+  schedule:
+    # 毎朝 8:30 JST (UTC 23:30 前日)
+    - cron: '30 23 * * *'
+    # 毎晩 21:00 JST (UTC 12:00)
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      push_type:
+        description: 'Push type (morning or evening)'
+        required: true
+        default: 'morning'
+        type: choice
+        options:
+          - morning
+          - evening
+
+jobs:
+  autonomous-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Determine Push Type
+        id: determine-type
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "PUSH_TYPE=${{ github.event.inputs.push_type }}" >> $GITHUB_ENV
+          else
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" -ge 20 ] || [ "$HOUR" -le 2 ]; then
+              echo "PUSH_TYPE=morning" >> $GITHUB_ENV
+            else
+              echo "PUSH_TYPE=evening" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Execute Autonomous LINE Delivery
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TARGET_USER_ID: ${{ secrets.LINE_TARGET_USER_ID }}
+        run: |
+          npx tsx src/cron/push_line_scheduler.ts $PUSH_TYPE
