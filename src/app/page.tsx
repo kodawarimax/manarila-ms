@@ -1,11 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Sparkles, ArrowRight, CornerDownLeft, Circle, CheckCircle2, GitPullRequest, Mic } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Sparkles, ArrowRight, CornerDownLeft, Circle, GitPullRequest, Mic, Square, Loader2, Volume2 } from 'lucide-react';
 
 export default function DashboardJournalPage() {
   const [inputText, setInputText] = useState('');
   const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Web Speech API（ブラウザ標準の音声認識）の初期化
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        setSpeechSupported(true);
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'ja-JP';
+
+        recognition.onresult = (event: any) => {
+          let currentTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            currentTranscript += event.results[i][0].transcript;
+          }
+          setInputText(currentTranscript);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error', event.error);
+          setIsRecording(false);
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (!speechSupported) {
+      alert('お使いのブラウザは音声認識に対応していません。Google ChromeまたはSafari等でお試しください。');
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error('Failed to start recording:', err);
+      }
+    }
+  };
 
   // Reflect/Granola風のデイリーエントリーログ
   const [entries, setEntries] = useState([
@@ -24,16 +80,21 @@ export default function DashboardJournalPage() {
     }
   ]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!inputText.trim() || isSynthesizing) return;
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+    }
 
     const userEntry = inputText;
     setInputText('');
     setIsSynthesizing(true);
 
     setTimeout(() => {
-      const isFriction = userEntry.includes('違和感') || userEntry.includes('モヤモヤ') || userEntry.includes('長すぎ') || userEntry.includes('アンケート') || userEntry.includes('迷い');
+      const isFriction = userEntry.includes('違和感') || userEntry.includes('モヤモヤ') || userEntry.includes('長すぎ') || userEntry.includes('アンケート') || userEntry.includes('迷い') || userEntry.includes('負担');
 
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -79,7 +140,7 @@ export default function DashboardJournalPage() {
         </p>
       </div>
 
-      {/* 2. 理念KPIミニマルカウンター（Reflect風の軽やかな指標） */}
+      {/* 2. 理念KPIミニマルカウンター */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="granola-card p-4">
           <div className="text-[11px] text-[#78766e] font-sans font-medium">① 理念と調和した関わり</div>
@@ -102,39 +163,78 @@ export default function DashboardJournalPage() {
         </div>
       </div>
 
-      {/* 3. Granola風「観照エディタ（人間の思考ログ）」 */}
-      <div className="granola-card p-6 border border-[#eeede8] focus-within:border-[#1a2c26] focus-within:shadow-md transition">
+      {/* 3. Granola風「観照エディタ（音声メモ対応）」 */}
+      <div className={`granola-card p-6 border transition ${
+        isRecording ? 'border-red-400 ring-2 ring-red-100 bg-red-50/20' : 'border-[#eeede8] focus-within:border-[#1a2c26]'
+      }`}>
         <div className="flex items-center justify-between text-xs text-[#9c9a92] mb-3">
-          <span className="font-mono">今日の対話・商談・現場での違和感を書き留める</span>
-          <span className="flex items-center text-[11px] text-[#78766e]">
-            <Mic className="w-3.5 h-3.5 mr-1" /> 音声メモ対応
+          <span className="font-mono flex items-center">
+            {isRecording ? (
+              <span className="flex items-center text-red-600 font-bold animate-pulse">
+                <Volume2 className="w-4 h-4 mr-1.5" /> 音声をリアルタイム文字起こし中...（話し終えたら停止）
+              </span>
+            ) : (
+              '今日の対話・商談・現場での違和感を音声またはテキストで残す'
+            )}
           </span>
+
+          <button
+            type="button"
+            onClick={toggleRecording}
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-medium transition ${
+              isRecording
+                ? 'bg-red-600 text-white shadow-sm hover:bg-red-700 animate-pulse'
+                : 'bg-[#f4f3ef] hover:bg-[#e8e7e1] text-[#24221f]'
+            }`}
+          >
+            {isRecording ? (
+              <>
+                <Square className="w-3 h-3 fill-current" />
+                <span>録音停止</span>
+              </>
+            ) : (
+              <>
+                <Mic className="w-3.5 h-3.5 text-teal-800" />
+                <span>音声で話す</span>
+              </>
+            )}
+          </button>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="例: 提供フローの事前アンケート、項目が多すぎて顧客が身構えてしまっていた。もう少し対話の中で引き出せるよう、必須項目を3つに絞った方がいいかもしれない..."
+            placeholder={isRecording ? "声を聞き取っています...話してください" : "歩きながら声で話すか、キーボードで入力してください。\n例: 「事前アンケートの設問が多すぎて、顧客が身構えてしまった気がする...」"}
             rows={3}
             className="w-full bg-transparent border-none resize-none text-sm text-[#24221f] placeholder:text-[#9c9a92] focus:outline-none leading-relaxed"
           />
           <div className="flex items-center justify-between pt-3 border-t border-[#f4f3ef]">
             <span className="text-[11px] text-[#9c9a92]">
-              AIが横で静かに違和感を捉え、手順書の改善Diffを作成します
+              話した内容からAIが違和感を抽出し、手順書の改善Diffを自動起票します
             </span>
             <button
               type="submit"
               disabled={isSynthesizing || !inputText.trim()}
               className="bg-[#1a2c26] hover:bg-teal-950 disabled:opacity-40 text-[#faf9f5] px-4 py-2 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition shadow-sm"
             >
-              <span>結晶化する</span>
-              <CornerDownLeft className="w-3.5 h-3.5" />
+              {isSynthesizing ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>結晶化中...</span>
+                </>
+              ) : (
+                <>
+                  <span>結晶化する</span>
+                  <CornerDownLeft className="w-3.5 h-3.5" />
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
 
-      {/* 4. 循環タイムライン（人間ログ ＋ 控えめなAIサマリー） */}
+      {/* 4. 循環タイムライン */}
       <div className="space-y-6 pt-4">
         <div className="flex items-center justify-between pb-2 border-b border-[#eeede8]">
           <h2 className="font-serif-title font-bold text-base text-[#1a2c26]">
@@ -146,7 +246,6 @@ export default function DashboardJournalPage() {
         <div className="space-y-4">
           {entries.map((entry) => (
             <div key={entry.id} className="granola-card p-6 space-y-4">
-              {/* 人間の生の声 */}
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="text-[11px] font-mono text-[#9c9a92] flex items-center space-x-2">
@@ -162,7 +261,6 @@ export default function DashboardJournalPage() {
                 </div>
               </div>
 
-              {/* Granola風の「控えめなAIによる智慧の結晶化」枠 */}
               <div className="bg-[#f7f6f2] rounded-lg p-4 border border-[#eeede8] text-xs text-[#525049] space-y-2 font-sans">
                 <div className="flex items-center justify-between font-mono text-[10px] text-[#78766e] uppercase tracking-wider">
                   <span className="flex items-center">
