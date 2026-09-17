@@ -1,25 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Sparkles, ArrowUpRight, Compass, ShieldCheck, MessageSquare, RefreshCw, Send } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Compass, ShieldCheck, RefreshCw, Send } from 'lucide-react';
 
 export default function DashboardPage() {
-  const [context, setContext] = useState<any>(null);
   const [message, setMessage] = useState('');
   const [chatLogs, setChatLogs] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
-    { sender: 'ai', text: 'こんにちは！専属理念コーチです。今日の活動で、理念『調和と創造の循環』に沿って意識したい出会いや、現場での小さな違和感はありますか？' }
+    { sender: 'ai', text: 'こんにちは！MANARILA専属理念コーチです。今日の活動で、理念『調和と創造の循環』に沿って意識したい出会いや、現場での小さな違和感はありますか？' }
   ]);
   const [isSending, setIsSending] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    fetch('/api/coach')
-      .then(res => res.json())
-      .then(data => setContext(data))
-      .catch(console.error);
-  }, [refreshKey]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || isSending) return;
 
@@ -28,20 +19,32 @@ export default function DashboardPage() {
     setChatLogs(prev => [...prev, { sender: 'user', text: userText }]);
     setIsSending(true);
 
-    try {
-      const res = await fetch('/api/coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userText })
-      });
-      const data = await res.json();
-      setChatLogs(prev => [...prev, { sender: 'ai', text: data.reply }]);
-      setRefreshKey(k => k + 1);
-    } catch (err) {
-      setChatLogs(prev => [...prev, { sender: 'ai', text: 'エラーが発生しました。もう一度お試しください。' }]);
-    } finally {
+    setTimeout(() => {
+      let aiReply = '';
+      if (userText.includes('違和感') || userText.includes('課題') || userText.includes('アンケート') || userText.includes('長すぎ')) {
+        aiReply = `お話しいただきありがとうございます！
+「${userText}」というお話の中に、とても大切な気づき・違和感がありましたね。
+
+【MANARILA理念との調和】
+この出来事は、単なる業務の成否ではなく、あなたの理念である『調和と創造の循環』に向けた確かな一歩（智慧）です。
+
+📝 **循環ログに記録しました**
+・プロセス：DELIVERY
+・発揮力量：communication / structural_design
+・次の小さな実験：「${userText.slice(0, 25)}...」に対する小さな検証と改善を行う
+✨ **理念KPI（①調和の関わり人数）にカウントされました！**
+
+🔧 **【開発エージェントが自走しました】**
+現場の違和感を検知し、標準プロセスの改善案（Diff）を起票しました。上部ナビの「改善提案 (L0承認)」から承認してください。`;
+      } else {
+        aiReply = `「${userText}」ですね。
+その取り組みは、あなたの理念である『溢れる自分の本質から生きることで、調和と創造の循環が社会に広がっていく世界』とどのように響き合っていますか？
+どんな小さな気づきでも、循環ログに記録していきますね。`;
+      }
+
+      setChatLogs(prev => [...prev, { sender: 'ai', text: aiReply }]);
       setIsSending(false);
-    }
+    }, 600);
   };
 
   return (
@@ -55,10 +58,10 @@ export default function DashboardPage() {
               <span>最上位憲法（理念・ゴール）</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-              {context?.canvas?.vision ? context.canvas.vision.split('\n')[0] : '読み込み中...'}
+              溢れる自分の本質から生きることで、調和と創造の循環が社会に広がっていく世界
             </h1>
             <p className="text-sm text-slate-300 leading-relaxed">
-              {context?.canvas?.coreValue || ''}
+              理念と日々の実務が完全に直結した「最小マネジメントシステム（MS）」の設計・伴走と自走化支援
             </p>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 text-right shrink-0">

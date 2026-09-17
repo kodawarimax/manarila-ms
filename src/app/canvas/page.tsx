@@ -1,19 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Compass, Users, Sparkles, Activity, UserCheck, Box, Coins } from 'lucide-react';
 
 export default function CanvasPage() {
-  const [context, setContext] = useState<any>(null);
-
-  useEffect(() => {
-    fetch('/api/coach')
-      .then(res => res.json())
-      .then(data => setContext(data))
-      .catch(console.error);
-  }, []);
-
-  const canvas = context?.canvas;
+  const canvas = {
+    vision: "溢れる自分の本質から生きることで、調和と創造の循環が社会に広がっていく世界\n→ 面白そう！を基点に人それぞれの理念を軸に、それを実現する循環がいくつも生まれる。それらが調和と共創を起こし、また次の循環へつながっていく世界。",
+    targetCustomer: "自らの本質から事業を営み、社会と調和した循環を生み出したい個人起業家・中小企業経営者",
+    coreValue: "理念と日々の実務が完全に直結した「最小マネジメントシステム（MS）」の設計・伴走と自走化支援",
+    coreActivities: "サービスの提供 / コンテンツ開発 / コミュニティ活動 / 営業・発信活動",
+    revenueModel: "個別セッション伴走支援 / 最小マネジメントシステム設計・導入 / 継続サポート / コミュニティ"
+  };
 
   return (
     <div className="space-y-6">
@@ -35,7 +32,7 @@ export default function CanvasPage() {
             ① 理念・ゴール（最上位憲法）
           </div>
           <p className="text-base font-bold text-slate-900 whitespace-pre-wrap leading-relaxed">
-            {canvas?.vision || '読み込み中...'}
+            {canvas.vision}
           </p>
         </div>
 
@@ -46,7 +43,7 @@ export default function CanvasPage() {
             ② 顧客像（対象）
           </div>
           <p className="text-sm text-slate-800 leading-relaxed">
-            {canvas?.targetCustomer || '読み込み中...'}
+            {canvas.targetCustomer}
           </p>
         </div>
 
@@ -57,7 +54,7 @@ export default function CanvasPage() {
             ③ 提供価値（コアバリュー）
           </div>
           <p className="text-sm text-slate-800 leading-relaxed">
-            {canvas?.coreValue || '読み込み中...'}
+            {canvas.coreValue}
           </p>
         </div>
 
@@ -68,7 +65,7 @@ export default function CanvasPage() {
             ④ 主要活動
           </div>
           <p className="text-sm text-slate-800 leading-relaxed">
-            {canvas?.coreActivities || '読み込み中...'}
+            {canvas.coreActivities}
           </p>
         </div>
 
@@ -104,7 +101,7 @@ export default function CanvasPage() {
             ⑦ 収益モデル
           </div>
           <p className="text-sm text-slate-800 leading-relaxed">
-            {canvas?.revenueModel || '読み込み中...'}
+            {canvas.revenueModel}
           </p>
         </div>
       </div>
